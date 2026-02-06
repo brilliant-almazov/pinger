@@ -1,0 +1,71 @@
+name: CI
+
+on:
+  push:
+    branches: [master]
+  pull_request:
+    branches: [master]
+
+jobs:
+  test:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build and Test with Coverage
+        run: |
+          xcodebuild test \
+            -project Pinger.xcodeproj \
+            -scheme Pinger \
+            -destination 'platform=macOS' \
+            -derivedDataPath DerivedData \
+            -enableCodeCoverage YES \
+            -resultBundlePath TestResults.xcresult
+
+      - name: Generate Coverage Report
+        run: |
+          # Extract coverage from xcresult using xccov
+          xcrun xccov view --report --json TestResults.xcresult > coverage.json
+
+          # Convert to lcov format using a simple script
+          python3 << 'EOF'
+          import json
+
+          with open('coverage.json') as f:
+              data = json.load(f)
+
+          with open('coverage.lcov', 'w') as out:
+              for target in data.get('targets', []):
+                  for file in target.get('files', []):
+                      path = file.get('path', '')
+                      if not path or '/Tests/' in path:
+                          continue
+                      out.write(f"SF:{path}\n")
+                      for func in file.get('functions', []):
+                          name = func.get('name', '')
+                          line = func.get('lineNumber', 0)
+                          covered = 1 if func.get('coveredLines', 0) > 0 else 0
+                          out.write(f"FN:{line},{name}\n")
+                          out.write(f"FNDA:{covered},{name}\n")
+                      out.write(f"LF:{file.get('lineCoverage', 0)}\n")
+                      out.write(f"LH:{file.get('coveredLines', 0)}\n")
+                      out.write("end_of_record\n")
+          EOF
+
+          echo "Coverage report generated:"
+          wc -l coverage.lcov
+          head -50 coverage.lcov
+
+      - name: Upload to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          token: ${{ secrets.CODECOV_TOKEN }}
+          files: coverage.lcov
+          fail_ci_if_error: false

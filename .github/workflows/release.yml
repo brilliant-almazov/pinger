@@ -1,0 +1,38 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  build:
+    runs-on: macos-15
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Generate Xcode project
+        run: xcodegen generate
+
+      - name: Build Release
+        run: |
+          xcodebuild -project Pinger.xcodeproj \
+            -scheme Pinger \
+            -configuration Release \
+            -derivedDataPath build \
+            clean build
+
+      - name: Create Archive
+        run: |
+          cd build/Build/Products/Release
+          zip -r ../../../../Pinger-${{ github.ref_name }}.zip Pinger.app
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: Pinger-${{ github.ref_name }}.zip
+          generate_release_notes: true

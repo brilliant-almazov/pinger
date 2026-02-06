@@ -1,0 +1,82 @@
+name: Pinger
+options:
+  bundleIdPrefix: com.brilliantalmazov
+  deploymentTarget:
+    macOS: "14.0"
+  xcodeVersion: "16.0"
+  generateEmptyDirectories: true
+
+settings:
+  base:
+    SWIFT_VERSION: "5.9"
+    MACOSX_DEPLOYMENT_TARGET: "14.0"
+
+targets:
+  Pinger:
+    type: application
+    platform: macOS
+    sources:
+      - path: Pinger/Sources
+      - path: Pinger/Resources/Assets.xcassets
+        buildPhase: resources
+        type: file
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brilliantalmazov.pinger
+        PRODUCT_NAME: Pinger
+        INFOPLIST_FILE: Pinger/Resources/Info.plist
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        COMBINE_HIDPI_IMAGES: YES
+        LD_RUNPATH_SEARCH_PATHS: "$(inherited) @executable_path/../Frameworks"
+        CODE_SIGN_STYLE: Automatic
+        ENABLE_HARDENED_RUNTIME: YES
+    entitlements:
+      path: Pinger/Resources/Pinger.entitlements
+      properties:
+        com.apple.security.app-sandbox: false
+        com.apple.security.network.client: true
+
+  PingerTests:
+    type: bundle.unit-test
+    platform: macOS
+    sources:
+      - path: PingerTests
+    dependencies:
+      - target: Pinger
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brilliantalmazov.pinger.tests
+        INFOPLIST_FILE: PingerTests/Info.plist
+
+  PingerUITests:
+    type: bundle.ui-testing
+    platform: macOS
+    sources:
+      - path: PingerUITests
+    dependencies:
+      - target: Pinger
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.brilliantalmazov.pinger.uitests
+        INFOPLIST_FILE: PingerUITests/Info.plist
+
+schemes:
+  Pinger:
+    build:
+      targets:
+        Pinger: all
+        PingerTests: [test]
+        PingerUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      targets:
+        - PingerTests
+        - PingerUITests
+    profile:
+      config: Release
+    analyze:
+      config: Debug
+    archive:
+      config: Release
